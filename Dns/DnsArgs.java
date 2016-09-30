@@ -7,7 +7,7 @@ public class DnsArgs {
 	int port = 53;
 	boolean mailServer = false;
 	boolean nameServer = false;
-	String ip;
+	byte[] ip = new byte[4];
 	String name;
 
 	static final String timeoutFlag = new String("-t");
@@ -23,7 +23,7 @@ public class DnsArgs {
 		index = findFlag(timeoutFlag, args);
 		if(index != -1) {
 			try {
-				this.timeout = Integer.parseInt(args[index+1]);
+				this.timeout = Float.parseFloat(args[index+1]);
 			} catch(Exception e) {
 				System.out.println("error parsing arguments: abort");
 				System.exit(-1);
@@ -59,7 +59,7 @@ public class DnsArgs {
 		if(index != -1) {
 			ns = true;
 		}
-
+		//ensure that only 1 such flag is given
 		if(ms && ns) {
 			System.out.println("cannot send mail server and name server query: abort");
 			System.exit(-1);
@@ -82,7 +82,7 @@ public class DnsArgs {
 			System.out.println("enter an ip address with an @ in front of it pls: abort");
 			System.exit(-1);
 		} else {
-			this.ip = args[index];
+			this.ip = parseIp(args[index].substring(1));
 		}
 		
 		//parse name argument
@@ -99,5 +99,24 @@ public class DnsArgs {
 		}
 		return -1;
 	}
+
+	//parse an ip address of the form ###.###.###.### from a string into an array of 4 bytes
+	private byte[] parseIp(String addr) {
+		byte[] bytes = new byte[4]; 
+		int dotIndex = 0, byteIndex = 0;
+		int ipSegment;
+		for(int i=0; i<addr.length(); i++) {
+			if(addr.charAt(i) == '.') {
+				ipSegment = Integer.parseInt(addr.substring(dotIndex, i));
+				bytes[byteIndex] = (byte)ipSegment;
+				byteIndex++;
+				dotIndex = i+1;
+			}
+		}
+		ipSegment = Integer.parseInt(addr.substring(dotIndex, addr.length()));
+		bytes[byteIndex] = (byte)ipSegment;
+
+		return bytes;
+	} 
 
 }
