@@ -3,6 +3,7 @@ package Dns;
 import java.net.InetAddress;
 import java.net.DatagramSocket;
 import java.net.DatagramPacket;
+import java.net.SocketTimeoutException;
 
 public class DnsClient {
 
@@ -28,14 +29,33 @@ public class DnsClient {
 		DatagramPacket recvPkt = new DatagramPacket(recvData, recvData.length);
 
 		int tries = 0;
-		while(tries <= params.retries) {
-			dSock.send(sendPkt);
-			dSock.setSoTimeout((int)(params.timeout*1000));
+		long startTime = 0, endTime = 0;
+		boolean received = false;
+		while(tries < params.retries) {
 
-			dsock.receive()
+			try {
+				dSock.send(sendPkt);
+				dSock.setSoTimeout((int)(params.timeout*1000));
+				startTime = System.currentTimeMillis();
 
+				dSock.receive(recvPkt);
 
+				received = true;
+				endTime = System.currentTimeMillis();
+				break;
+
+			} catch (SocketTimeoutException e) {
+				System.out.println("request timed out");
+				tries++;
+			}
 		}
+
+		if(!received) {
+			System.out.println("failed to receive response in " + tries + " attempts: aborting");
+			System.exit(-1);
+		}
+
+		System.out.println("Response received after " + (endTime - startTime)/1000.0 + "seconds (" + (tries+1) + " retries)");
 
 
 
