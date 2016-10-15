@@ -19,18 +19,27 @@ public class DnsClient {
 		//get the address of the DNS server
 		InetAddress targetAddr = InetAddress.getByAddress(params.ip);
 
-		//initialize send buffer
-		byte[] sendData = new byte[1024];
-		byte[] recvData = new byte[1024];
+		//initialize receive buffer
+		byte[] recvData = new byte[2048];
+
+		//generate a dns query
+		DnsQuery dq = new DnsQuery(params.name, params.nameServer, params.mailServer);
+
+		// System.out.println("length = " + dq.query.length);
+		// for(int i=0; i<dq.query.length; i++){
+		// 	if(i%2 == 0) {
+		// 		System.out.println("");
+		// 	}
+		// 	System.out.print((byte)dq.query[i] + " ");			
+		// }
 
 		//initialize socket and datagram packet
 		DatagramSocket dSock = new DatagramSocket();
-		DatagramPacket sendPkt = new DatagramPacket(sendData, sendData.length, targetAddr, params.port);
+		DatagramPacket sendPkt = new DatagramPacket(dq.query, dq.query.length, targetAddr, params.port);
 		DatagramPacket recvPkt = new DatagramPacket(recvData, recvData.length);
 
 		int tries = 0;
 		long startTime = 0, endTime = 0;
-		boolean received = false;
 		while(tries < params.retries) {
 
 			try {
@@ -40,7 +49,6 @@ public class DnsClient {
 
 				dSock.receive(recvPkt);
 
-				received = true;
 				endTime = System.currentTimeMillis();
 				break;
 
@@ -50,14 +58,12 @@ public class DnsClient {
 			}
 		}
 
-		if(!received) {
+		if(tries == params.retries) {
 			System.out.println("failed to receive response in " + tries + " attempts: aborting");
 			System.exit(-1);
 		}
 
-		System.out.println("Response received after " + (endTime - startTime)/1000.0 + "seconds (" + (tries+1) + " retries)");
-
-
+		System.out.println("Response received after " + (endTime - startTime)/1000.0 + " seconds (" + (tries+1) + " retries)");
 
 		
 
