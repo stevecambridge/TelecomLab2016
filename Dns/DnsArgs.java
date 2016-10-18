@@ -25,7 +25,7 @@ public class DnsArgs {
 			try {
 				this.timeout = Float.parseFloat(args[index+1]);
 			} catch(Exception e) {
-				System.out.println("error parsing arguments: abort");
+				System.out.println("ERROR	Timeout number not a float");
 				System.exit(-1);
 			}
 		}
@@ -34,7 +34,7 @@ public class DnsArgs {
 			try {
 				this.retries = Integer.parseInt(args[index+1]);
 			} catch(Exception e) {
-				System.out.println("error parsing arguments: abort");
+				System.out.println("ERROR	Retries number is not an integer");
 				System.exit(-1);
 			}
 		}
@@ -43,7 +43,7 @@ public class DnsArgs {
 			try {
 				this.port = Integer.parseInt(args[index+1]);
 			} catch(Exception e) {
-				System.out.println("error parsing arguments: abort");
+				System.out.println("ERROR	Port number is not an integer");
 				System.exit(-1);
 			}
 		}
@@ -61,7 +61,7 @@ public class DnsArgs {
 		}
 		//ensure that only 1 such flag is given
 		if(ms && ns) {
-			System.out.println("cannot send mail server and name server query: abort");
+			System.out.println("ERROR	Cannot send mail server and name server query");
 			System.exit(-1);
 		} else if(ms) {
 			this.mailServer = true;
@@ -79,7 +79,7 @@ public class DnsArgs {
 			}
 		}
 		if(!ipFound) {
-			System.out.println("enter an ip address with an @ in front of it pls: abort");
+			System.out.println("ERROR	Enter an ip address with an @ in front of it pls");
 			System.exit(-1);
 		} else {
 			this.ip = parseIp(args[index].substring(1));

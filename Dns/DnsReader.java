@@ -28,79 +28,77 @@ public class DnsReader {
 		//check ID
 		int responseId = resp.readShort();
 		if(responseId != q.id) {
-			System.out.println("response id does not match request id: aborting");
+			System.out.println("ERROR	Response id does not match request id");
 			System.exit(-1);
 		}
 
 		//check flags
 		short flags = resp.readShort();	
-		readFlags(flags);
+		boolean auth = readFlags(flags);
 
 		//skip qdCount
 		resp.readShort();
 
 		//check anCount
 		int anCount = resp.readShort();
-		System.out.println("Answer records: " + anCount);
 
 		//check these other Counts
 		int nsCount = resp.readShort();
-		System.out.println("Authority records: " + nsCount);
 		int arCount = resp.readShort();
-		System.out.println("Additional records: " + arCount);
 
 
 		/* REQUEST SECTION */
 		resp.skipBytes(q.reqLength);
 
 		/* ANSWER SECTION */
-		System.out.println("------------ANSWER RECORDS-------------");
+		System.out.println("------------ANSWER RECORDS (" + anCount +")-------------");
 		for(int i=0; i<anCount; i++) {
-			System.out.println("Answer record #" + (i+1) + ":");
-			readRR(pkt, resp);
+			// System.out.println("Answer record #" + (i+1) + ":");
+			readRR(pkt, resp, auth);
 		}
 
-		System.out.println("-----------AUTHORITY RECORDS-----------");
+		System.out.println("-----------AUTHORITY RECORDS (" + nsCount +")-----------");
 		for(int i=0; i<nsCount; i++) {
-			System.out.println("Authority record #" + (i+1) + ":");
-			readRR(pkt, resp);
+			// System.out.println("Authority record #" + (i+1) + ":");
+			readRR(pkt, resp, auth);
 		}
 
-		System.out.println("----------ADDITIONAL RECORDS-----------");
+		System.out.println("----------ADDITIONAL RECORDS (" + arCount +")-----------");
 		for(int i=0; i<arCount; i++) {
-			System.out.println("Additional record #" + (i+1) + ":");
-			readRR(pkt, resp);
+			// System.out.println("Additional record #" + (i+1) + ":");
+			readRR(pkt, resp, auth);
 		}
 	}
 
-	private static void readRR(byte[] pkt, DataInputStream resp) throws IOException {
+	private static void readRR(byte[] pkt, DataInputStream resp, boolean auth) throws IOException {
 		//read the NAME from the start of the name section - 12 accounts for the length of the header
 		String name = readName(pkt, resp);
 
 		//read the TYPE
 		short qtype = resp.readShort();
-		boolean typeRecognized = true;
-		switch(qtype) {
-			case A_QUERY: 	System.out.println("Type: A");
-						  	break;
-			case NS_QUERY: 	System.out.println("Type: NS");
-							break;
-			case MX_QUERY:	System.out.println("Type: MX");
-							break;
-			case CNAME: 	System.out.println("Type: CNAME");
-						 	break;
-			default: 		System.out.println("error: RR type " + qtype + " not recognized");
-						   	typeRecognized = false;
-		}
+		
+		// switch(qtype) {
+		// 	case A_QUERY: 	typeString = "IP";
+		// 				  	break;
+		// 	case NS_QUERY: 	typeString = "NS";
+		// 					break;
+		// 	case MX_QUERY:	typeString = "MX";
+		// 					break;
+		// 	case CNAME: 	typeString = "CNAME";
+		// 				 	break;
+		// 	default: 		System.out.println("error: RR type " + qtype + " not recognized");
+		// 				   	typeRecognized = false;
+		// }
 
 		//check CLASS
 		if(resp.readShort() != 0x0001) {
-			System.out.println("unexpected value for CLASS: aborting");
+			System.out.println("ERROR	Unexpected value for CLASS");
 			System.exit(-1);
 		}
 
 		//check TTL
-		System.out.println("TTL = " + resp.readInt());
+		int ttl = resp.readInt();
+		// System.out.println("TTL = " + ttl);
 
 		//check RDLENGTH
 		int rdLength = resp.readShort();
@@ -110,19 +108,21 @@ public class DnsReader {
 
 		//read RDATA, dependent on the record type
 		switch(qtype) {
-			case A_QUERY: 	readTypeA(resp);
+			case A_QUERY: 	readTypeA(resp, ttl, auth);
 						  	break;
-			case NS_QUERY: 	readTypeNS(pkt, resp);
+			case NS_QUERY: 	readTypeNS(pkt, resp, ttl, auth);
 							break;
-			case MX_QUERY:	readTypeMX(pkt, resp);
+			case MX_QUERY:	readTypeMX(pkt, resp, ttl, auth);
 							break;
-			case CNAME: 	readTypeCNAME(pkt, resp);
+			case CNAME: 	readTypeCNAME(pkt, resp, ttl, auth);
 						 	break;
-			default: 		break;
+			default: 		resp.skipBytes(rdLength);
+							System.out.println("ERROR	RR type not recognized");
+							break;
 		}
 	}
 
-	private static void readTypeA(DataInputStream r) throws IOException {
+	private static void readTypeA(DataInputStream r, int ttl, boolean auth) throws IOException {
 		String ip = "";
 		int field = 0;
 		for(int i=0; i<4; i++) {
@@ -135,32 +135,32 @@ public class DnsReader {
 				ip += ".";
 			}
 		}
-		System.out.println("IP = " + ip);
+		System.out.println("IP	" + ip + "	" + "TTL=" + ttl + "	" + (auth ? "auth" : "nonauth"));
 	}
 
-	private static void readTypeNS(byte[] pkt, DataInputStream r) throws IOException {
+	private static void readTypeNS(byte[] pkt, DataInputStream r, int ttl, boolean auth) throws IOException {
 		String serverName = readName(pkt, r);
-		System.out.println("Authoritative server name: " + serverName);
+		System.out.println("NS	" + serverName + "	" + "TTL=" + ttl + "	" + (auth ? "auth" : "nonauth"));
 	}
 
-	private static void readTypeMX(byte[] pkt, DataInputStream r) throws IOException {
+	private static void readTypeMX(byte[] pkt, DataInputStream r, int ttl, boolean auth) throws IOException {
 		int pref = r.readShort();
 		String exchange = readName(pkt, r);
-		System.out.println("Priority: " + pref + " -- Mail server domain name: " + exchange);
+		System.out.println("MX	" + exchange + "	pref=" + pref + "	TTL=" + ttl + "	" + (auth ? "auth" : "nonauth"));
 	}
 
-	private static void readTypeCNAME(byte[] pkt, DataInputStream r) throws IOException {
+	private static void readTypeCNAME(byte[] pkt, DataInputStream r, int ttl, boolean auth) throws IOException {
 		String aliasName = readName(pkt, r);
-		System.out.println("Alias name: " + aliasName);
+		System.out.println("CNAME	" + aliasName + "	" + "TTL=" + ttl + "	" + (auth ? "auth" : "nonauth"));
 	}
 
-	private static void readFlags(short flags) {
+	private static boolean readFlags(short flags) {
 		
 		//check if response or query
 		if((flags & 0x8000) == 32768) {
 			// System.out.println("yes it is a response");
 		} else {
-			System.out.println("error: query message received. aborting");
+			System.out.println("ERROR	Query message received");
 			System.exit(-1);
 		}
 
@@ -174,33 +174,32 @@ public class DnsReader {
 		}
 
 		if((flags & 0x0200) > 0) {
-			System.out.println("truncated message: aborting bcuz yolo");
+			System.out.println("ERROR	Truncated message");
 			System.exit(-1);
 		}
 
 		if((flags & 0x0080) == 0) {
-			System.out.println("error: recursive query unsupported");
+			System.out.println("ERROR	Recursive query unsupported");
 		}
 
 		switch((flags & 0x000f)) {
 			case 0: 	break;
-			case 1: 	System.out.println("name server unable to interpret query");
+			case 1: 	System.out.println("ERROR	Name server unable to interpret query");
 					 	System.exit(-1);
-			case 2: 	System.out.println("server unable to process due to server problems");
+			case 2: 	System.out.println("ERROR	Server unable to process due to server problems");
 					 	System.exit(-1);
 			case 3: 	if(authoritative){
-					 		System.out.println("domain name not found");
+					 		System.out.println("ERROR	Domain name not found");
 					 		System.exit(-1);
 					 	}
-					 	break;
-			case 4: 	System.out.println("name server does not support the requested query");
+			case 4: 	System.out.println("ERROR	Name server does not support the requested query");
 					 	System.exit(-1);
-			case 5: 	System.out.println("name server refused request");
+			case 5: 	System.out.println("ERROR	Name server refused request");
 					 	System.exit(-1);
-			default: 	System.out.println("error reading error code (lol)");
+			default: 	System.out.println("ERROR	Could not read error code (lol)");
 					  	System.exit(-1);
 		}
-
+		return authoritative;
 	}
 
 

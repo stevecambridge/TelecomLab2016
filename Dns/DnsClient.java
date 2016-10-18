@@ -13,7 +13,7 @@ public class DnsClient {
 
 		//Print sending information
 		System.out.println("DnsClient sending request for " + params.name);
-		System.out.println("Server: " + params.ip[0] + "." + params.ip[1] + "." + params.ip[2] + "." + params.ip[3]);
+		System.out.println("Server: " + btu(params.ip[0]) + "." + btu(params.ip[1]) + "." + btu(params.ip[2]) + "." + btu(params.ip[3]));
 		System.out.println("Request type: " + (params.nameServer ? "NS" : "") + (params.mailServer ? "MX" : "") + (params.mailServer || params.nameServer ? "" : "A"));
 
 		//get the address of the DNS server
@@ -53,13 +53,13 @@ public class DnsClient {
 				break;
 
 			} catch (SocketTimeoutException e) {
-				System.out.println("request timed out");
+				System.out.println("Timeout");
 				tries++;
 			}
 		}
 
 		if(tries == params.retries) {
-			System.out.println("failed to receive response in " + tries + " attempts: aborting");
+			System.out.println("ERROR	Failed to receive response in " + tries + " attempts: aborting");
 			System.exit(-1);
 		}
 
@@ -70,5 +70,14 @@ public class DnsClient {
 
 		return;
 
+	}
+
+	//make a byte into an unsigned int
+	private static int btu(byte b) {
+		int i = b;
+		if(i<0) {
+			i += 256;
+		}
+		return i;
 	}
 }

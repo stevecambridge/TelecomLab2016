@@ -47,7 +47,7 @@ public class DnsQuery {
 
 		//write stuff
 		req.writeShort(id);
-		req.writeShort(1 << 8);
+		req.writeShort(1 << 8); //flags line
 		req.writeShort(qdCount);
 		req.writeShort(anCount);
 		req.writeShort(nsCount);
