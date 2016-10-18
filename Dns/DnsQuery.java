@@ -12,14 +12,20 @@ public class DnsQuery {
 	final short MX_QUERY = 0x000f;
 	final short QCLASS = 0x0001;
 	
+	//header variables
 	int id;
 	int qdCount;
 	int anCount;
 	int nsCount;
 	int arCount;
 
+	//length of request section in bytes
+	int reqLength = 0;
+
+	//request type
 	short qType;
 
+	//byte array representing the query
 	byte[] query;
 
 	public DnsQuery(String host, boolean ns, boolean mx) throws IOException {
@@ -31,7 +37,7 @@ public class DnsQuery {
 
 		//generate random id
 		Random r = new Random();
-		id = r.nextInt();
+		id = r.nextInt() % 1000;
 
 		//set other stuff
 		qdCount = 1;
@@ -49,6 +55,9 @@ public class DnsQuery {
 
 
 		/*REQUEST SECTION*/
+
+		//setup to save the size of the request section
+		reqLength = req.size();
 
 		//tokenize hostname and write into QNAME section
 		int tokenIndex = 0;
@@ -83,6 +92,10 @@ public class DnsQuery {
 		//write QCLASS
 		req.writeShort(QCLASS);
 
+		//flush output stream to byte array
 		query = bytesOut.toByteArray();
+
+		//save the size of the request section
+		reqLength = req.size() - reqLength;
 	}
 }

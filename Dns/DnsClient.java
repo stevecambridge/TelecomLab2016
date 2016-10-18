@@ -63,9 +63,10 @@ public class DnsClient {
 			System.exit(-1);
 		}
 
+		//o dang we did it!!!
 		System.out.println("Response received after " + (endTime - startTime)/1000.0 + " seconds (" + (tries+1) + " retries)");
 
-		
+		DnsReader.readResponse(recvPkt.getData(), dq);
 
 		return;
 
